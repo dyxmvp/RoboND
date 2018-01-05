@@ -69,13 +69,13 @@ def pcl_callback(pcl_msg):
     cluster_color = get_color_list(len(cluster_indices))
     color_cluster_point_list = []
     for j, indices in enumerate(cluster_indices):
-        for i, indice in enumerate(indices):
-            color_cluster_point_list.append([white_cloud[indice][0],
-                                            white_cloud[indice][1],
-                                            white_cloud[indice][2],
-                                            rgb_to_float(cluster_color[j])])    
-    cluster_cloud = pcl.PointCloud_PointXYZRGB()
-    cluster_cloud.from_list(color_cluster_point_list)
+    	for i, indice in enumerate(indices):
+    		color_cluster_point_list.append([white_cloud[indice][0],
+	                                        white_cloud[indice][1],
+	                                        white_cloud[indice][2],
+	                                        rgb_to_float(cluster_color[j])])	
+	cluster_cloud = pcl.PointCloud_PointXYZRGB()
+	cluster_cloud.from_list(color_cluster_point_list)
 
     # TODO: Convert PCL data to ROS messages
     ros_cloud_objects = pcl_to_ros(extracted_outliers)
@@ -122,7 +122,7 @@ def pcl_callback(pcl_msg):
         # Add the detected object to the list of detected objects.
         do = DetectedObject()
         do.label = label
-        do.cloud = ros_cluster
+        do.cloud = pcl_cluster
         detected_objects.append(do)
 
     rospy.loginfo('Detected {} objects: {}'.format(len(detected_objects_labels), detected_objects_labels))
@@ -143,7 +143,8 @@ if __name__ == '__main__':
     pcl_objects_pub = rospy.Publisher("/pcl_objects", PointCloud2, queue_size = 1)
     pcl_table_pub = rospy.Publisher("/pcl_table", PointCloud2, queue_size = 1)
     pcl_cluster_pub = rospy.Publisher("/pcl_cluster", PointCloud2, queue_size = 1)
-    object_markers_pub = rospy.Publisher("/object_markers", PointCloud2, queue_size = 1)
+    object_markers_pub = rospy.Publisher("/object_markers", Marker, queue_size = 1)
+    detected_objects_pub = rospy.Publisher("/detected_objects", DetectedObjectsArray, queue_size = 1)
 
     # TODO: Load Model From disk
     model = pickle.load(open('model.sav', 'rb'))
@@ -157,4 +158,4 @@ if __name__ == '__main__':
 
     # TODO: Spin while node is not shutdown
     while not rospy.is_shutdown():
-        rospy.spin()
+    	rospy.spin()
