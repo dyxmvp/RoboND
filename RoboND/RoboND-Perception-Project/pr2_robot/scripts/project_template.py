@@ -69,6 +69,7 @@ def pcl_callback(pcl_msg):
     cloud_filtered = vox.filter()
 
     # TODO: PassThrough Filter
+    # Passthrough in Z axis
     passthrough = cloud_filtered.make_passthrough_filter()
     filter_axis = 'z'
     passthrough.set_filter_field_name(filter_axis)
@@ -76,6 +77,15 @@ def pcl_callback(pcl_msg):
     axis_max = 1.1
     passthrough.set_filter_limits(axis_min, axis_max)
     cloud_filtered = passthrough.filter()
+    # Passthrough in Y axis
+    passthrough = cloud_filtered.make_passthrough_filter()
+    filter_axis = 'y'
+    passthrough.set_filter_field_name(filter_axis)
+    axis_min = -0.4
+    axis_max = 0.4
+    passthrough.set_filter_limits(axis_min, axis_max)
+    cloud_filtered = passthrough.filter()    
+
 
     # TODO: RANSAC Plane Segmentation
     seg = cloud_filtered.make_segmenter()
@@ -94,8 +104,8 @@ def pcl_callback(pcl_msg):
     tree = white_cloud.make_kdtree()
     ec = white_cloud.make_EuclideanClusterExtraction()
     ec.set_ClusterTolerance(0.01)
-    ec.set_MinClusterSize(80)
-    ec.set_MaxClusterSize(500)
+    ec.set_MinClusterSize(110)
+    ec.set_MaxClusterSize(1000)
     ec.set_SearchMethod(tree)
     cluster_indices = ec.Extract()
 
@@ -124,7 +134,7 @@ def pcl_callback(pcl_msg):
     pcl_cluster_pub.publish(ros_cluster_cloud)
 
 # Exercise-3 TODOs:
-'''
+
     # Classify the clusters! (loop through each detected cluster one at a time)
     detected_objects_labels = []
     detected_objects = []
@@ -159,14 +169,14 @@ def pcl_callback(pcl_msg):
 
     # Publish the list of detected objects
     detected_objects_pub.publish(detected_objects)
-'''
+
     # Suggested location for where to invoke your pr2_mover() function within pcl_callback()
     # Could add some logic to determine whether or not your object detections are robust
     # before calling pr2_mover()
-    #try:
-    #    pr2_mover(detected_objects_list)
-    #except rospy.ROSInterruptException:
-    #    pass
+    try:
+        pr2_mover(detected_objects)
+    except rospy.ROSInterruptException:
+        pass
 
 # function to load parameters and request PickPlace service
 def pr2_mover(object_list):
@@ -226,11 +236,11 @@ if __name__ == '__main__':
     detected_objects_pub = rospy.Publisher("/detected_objects", DetectedObjectsArray, queue_size = 1)
 
     # TODO: Load Model From disk
-    #model = pickle.load(open('model.sav', 'rb'))
-    #clf = model['classifier']
-    #encoder = LabelEncoder()
-    #encoder.classes_ = model['classes']
-    #scaler = model['scaler']
+    model = pickle.load(open('model.sav', 'rb'))
+    clf = model['classifier']
+    encoder = LabelEncoder()
+    encoder.classes_ = model['classes']
+    scaler = model['scaler']
 
     # Initialize color_list
     get_color_list.color_list = []
