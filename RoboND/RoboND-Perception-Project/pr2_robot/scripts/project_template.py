@@ -113,11 +113,11 @@ def pcl_callback(pcl_msg):
     cluster_color = get_color_list(len(cluster_indices))
     color_cluster_point_list = []
     for j, indices in enumerate(cluster_indices):
-        for i, indice in enumerate(indices):
-            color_cluster_point_list.append([white_cloud[indice][0], 
-                                            white_cloud[indice][1], 
-                                            white_cloud[indice][2], 
-                                            rgb_to_float(cluster_color[j])])
+    	for i, indice in enumerate(indices):
+    		color_cluster_point_list.append([white_cloud[indice][0], 
+    										white_cloud[indice][1], 
+    										white_cloud[indice][2], 
+    										rgb_to_float(cluster_color[j])])
     cluster_cloud = pcl.PointCloud_PointXYZRGB()
     cluster_cloud.from_list(color_cluster_point_list)
 
@@ -164,7 +164,7 @@ def pcl_callback(pcl_msg):
         # Add the detected object to the list of detected objects.
         do = DetectedObject()
         do.label = label
-        do.cloud = pcl_cluster
+        do.cloud = ros_object#pcl_cluster
         detected_objects.append(do)
 
     # Publish the list of detected objects
@@ -182,38 +182,80 @@ def pcl_callback(pcl_msg):
 def pr2_mover(object_list):
 
     # TODO: Initialize variables
+    labels = []
+    centroids = [] # to be list of tuples (x, y, z)
+    places = []
+    arms = []
+    object_dict = {}
+    dropbox_dict = {}
+    dict_list = []
 
     # TODO: Get/Read parameters
+    object_list_param = rospy.get_param('/object_list')
+    dropbox_list_param = rospy.get_param('/dropbox')
 
     # TODO: Parse parameters into individual variables
+    for obj in object_list_param:
+    	object_dict[obj['name']] = obj['group']
+    
+    for box in dropbox_list_param:
+    	dropbox_dict[box['group']] = [box['position'], box['name']]
 
     # TODO: Rotate PR2 in place to capture side tables for the collision map
 
     # TODO: Loop through the pick list
+    for obj in object_list:
 
         # TODO: Get the PointCloud for a given object and obtain it's centroid
+        labels.append(obj.label)
+        points_arr = ros_to_pcl(obj.cloud).to_array()
+        center = np.mean(points_arr, axis=0)[:3]
+        center_scalar = [np.asscalar(center[0]), np.asscalar(center[1]), np.asscalar(center[2])]
+        #print(center)
+        centroids.append(center_scalar)
 
         # TODO: Create 'place_pose' for the object
+        place_pose = Pose()
+        place_pose.position.x = dropbox_dict[object_dict[obj.label]][0][0]
+        place_pose.position.y = dropbox_dict[object_dict[obj.label]][0][1]
+        place_pose.position.z = dropbox_dict[object_dict[obj.label]][0][2]
+        places.append(place_pose)
 
+        pick_pose = Pose()
+        pick_pose.position.x = center[0]
+        pick_pose.position.y = center[1]
+        pick_pose.position.z = center[2]
+  
         # TODO: Assign the arm to be used for pick_place
+        arm = String()
+        arm.data = dropbox_dict[object_dict[obj.label]][1]
+        arms.append(arm)
 
         # TODO: Create a list of dictionaries (made with make_yaml_dict()) for later output to yaml format
+        tN = 1
+        test_scene_num = Int32()
+        test_scene_num.data = tN
+        object_name = String()
+        object_name.data = obj.label
+        yaml_dict = make_yaml_dict(test_scene_num, arm, object_name, pick_pose, place_pose)
+        dict_list.append(yaml_dict)
 
         # Wait for 'pick_place_routine' service to come up
         rospy.wait_for_service('pick_place_routine')
-'''
+
         try:
             pick_place_routine = rospy.ServiceProxy('pick_place_routine', PickPlace)
 
             # TODO: Insert your message variables to be sent as a service request
-            resp = pick_place_routine(TEST_SCENE_NUM, OBJECT_NAME, WHICH_ARM, PICK_POSE, PLACE_POSE)
+            resp = pick_place_routine(test_scene_num, object_name, arm, pick_pose, place_pose)
 
             print ("Response: ",resp.success)
 
         except rospy.ServiceException, e:
             print "Service call failed: %s"%e
-'''
+
     # TODO: Output your request parameters into output yaml file
+    send_to_yaml('output_1.yaml', dict_list)
 
 
 
@@ -247,4 +289,4 @@ if __name__ == '__main__':
 
     # TODO: Spin while node is not shutdown
     while not rospy.is_shutdown():
-        rospy.spin()
+    	rospy.spin()
