@@ -202,7 +202,8 @@ def pr2_mover(object_list):
     	dropbox_dict[box['group']] = [box['position'], box['name']]
 
     # TODO: Rotate PR2 in place to capture side tables for the collision map
-
+    count = 0
+    num = 3
     # TODO: Loop through the pick list
     for obj in object_list:
 
@@ -216,15 +217,20 @@ def pr2_mover(object_list):
 
         # TODO: Create 'place_pose' for the object
         place_pose = Pose()
-        place_pose.position.x = dropbox_dict[object_dict[obj.label]][0][0]
-        place_pose.position.y = dropbox_dict[object_dict[obj.label]][0][1]
-        place_pose.position.z = dropbox_dict[object_dict[obj.label]][0][2]
+        pl_x = dropbox_dict[object_dict[obj.label]][0][0]
+        pl_y = dropbox_dict[object_dict[obj.label]][0][1]
+        pl_z = dropbox_dict[object_dict[obj.label]][0][2]
+        pl = [pl_x, pl_y, pl_z]
+        #print(pl)
+        place_pose.position.x = pl_x
+        place_pose.position.y = pl_y
+        place_pose.position.z = pl_z
         places.append(place_pose)
 
         pick_pose = Pose()
-        pick_pose.position.x = center[0]
-        pick_pose.position.y = center[1]
-        pick_pose.position.z = center[2]
+        pick_pose.position.x = center_scalar[0]
+        pick_pose.position.y = center_scalar[1]
+        pick_pose.position.z = center_scalar[2]
   
         # TODO: Assign the arm to be used for pick_place
         arm = String()
@@ -232,13 +238,17 @@ def pr2_mover(object_list):
         arms.append(arm)
 
         # TODO: Create a list of dictionaries (made with make_yaml_dict()) for later output to yaml format
-        tN = 1
+        tN = 3
         test_scene_num = Int32()
         test_scene_num.data = tN
         object_name = String()
-        object_name.data = obj.label
+        object_name.data = np.array2string(obj.label)
+        #print(obj.label)
+        #print(np.array2string(obj.label))
         yaml_dict = make_yaml_dict(test_scene_num, arm, object_name, pick_pose, place_pose)
         dict_list.append(yaml_dict)
+
+    #send_to_yaml('output_1.yaml', dict_list)
 
         # Wait for 'pick_place_routine' service to come up
         rospy.wait_for_service('pick_place_routine')
@@ -253,9 +263,12 @@ def pr2_mover(object_list):
 
         except rospy.ServiceException, e:
             print "Service call failed: %s"%e
+        
+
+
 
     # TODO: Output your request parameters into output yaml file
-    send_to_yaml('output_1.yaml', dict_list)
+    send_to_yaml('output_3.yaml', dict_list)
 
 
 
